@@ -69,10 +69,10 @@ else:
     run_command(modulesInstallCommand)
 
     initramfsGenerationCommand = ["genkernel", "initramfs"]
-    # run_command(initramfsGenerationCommand)
+    run_command(initramfsGenerationCommand)
 
     mergeBackModulesCommand = ["emerge", "-1q", "@x11-module-rebuild", "@module-rebuild"]
-    # run_command(mergeBackModulesCommand)
+    run_command(mergeBackModulesCommand)
 
     versions = []
     dirList = os.listdir(kernelRootDir)
