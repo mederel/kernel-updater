@@ -11,3 +11,8 @@ This python script is to be used after each install of a newer version of your s
 * rebuild all modules with ``emerge`` and the set ``@module-rebuild``
 * remove versions older than 1 version before the current
 * update grub configuration with ``grub-mkconfig``
+
+Installation
+------------
+
+An ebuild is available in mederel-overlay (non official): https://github.com/mederel/mederel-overlay
