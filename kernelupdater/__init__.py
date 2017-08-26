@@ -144,11 +144,12 @@ class ConfigToCopyChooser(object):
 
     def choose_config_file(self):
         config_files = self.find_config_files()
+        config_files.sort(reverse=True)
 
         print("Select kernel to copy .config from:")
         for idx, config_file_path in enumerate(config_files):
             print("" + str(idx) + " - " + config_file_path)
-        chosen_index = int(input("Choice? [0-" + str(len(config_files) - 1) + "]:"))
+        chosen_index = int(self.do_input("Choice? [0-" + str(len(config_files) - 1) + "]:"))
         return config_files[chosen_index]
 
     def find_config_files(self):
@@ -161,5 +162,6 @@ class ConfigToCopyChooser(object):
                 config_files.append(a_config_file)
         return config_files
 
-
+    def do_input(self, string_to_display):
+        return input(string_to_display)
 
