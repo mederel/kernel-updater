@@ -22,7 +22,11 @@ class SelectedKernel(object):
             exit(1)  # Error no symlink available for kernel - aborting
 
         self.selected_kernel = os.readlink(self.link_folder)
-        self.selected_kernel_dir = kernel_root_dir + "/" + self.selected_kernel
+        if self.selected_kernel.startswith('/'):
+            self.selected_kernel_dir = self.selected_kernel
+            self.selected_kernel = self.selected_kernel[self.selected_kernel.rfind('/')+1:]
+        else:
+            self.selected_kernel_dir = kernel_root_dir + '/' + self.selected_kernel
         print("Selected kernel is: " + self.selected_kernel + " in dir " + self.selected_kernel_dir)
 
 
@@ -86,22 +90,23 @@ class KernelUpdater(object):
         dir_list = os.listdir(self.kernel_root_dir)
         for kernel_dir in dir_list:
             if "linux-" in kernel_dir:
-                versions.append(self.get_version_from_kernel_folder(kernel_dir))
-        selected_version = self.get_version_from_kernel_folder(self.selected_kernel.selected_kernel)
-        versions = sorted(versions, key=itemgetter(0, 1, 2))
+                versions.append(self.get_version_int_array_from_kernel_folder(kernel_dir))
+        selected_version = self.get_version_int_array_from_kernel_folder(self.selected_kernel.selected_kernel)
+        versions = sorted(versions, key=itemgetter(0, 1, 2, 3))
         index_selected = versions.index(selected_version)
         return [versions[i] for i in range(0, index_selected - 1)]
 
     def clean_old_kernels(self, old_kernel_versions_to_clean):
         for version in old_kernel_versions_to_clean:
-            version_str = ".".join(version)
+            kernel_version_suffix = self.get_kernel_folder_suffix_from_version_int_array(version)
+            version_str = self.get_version_string_from_version_int_array(version)
             print("cleaning up version " + version_str + "...")
             self.command_runner.run_command(["emerge", "-C", "=gentoo-sources-" + version_str])
-            self.remove_tree(self.modules_root_dir + "/" + version_str + "-gentoo")
-            self.remove_tree(self.kernel_root_dir + "/linux-" + version_str + "-gentoo")
+            self.remove_tree(self.modules_root_dir + "/" + kernel_version_suffix)
+            self.remove_tree(self.kernel_root_dir + "/linux-" + kernel_version_suffix)
             boot_versioned_files = os.listdir(self.grub_root_dir)
             for boot_versioned_file in boot_versioned_files:
-                if version_str in boot_versioned_file:
+                if kernel_version_suffix in boot_versioned_file:
                     boot_versioned_path = self.grub_root_dir + "/" + boot_versioned_file
                     print("Removing " + boot_versioned_path)
                     os.remove(boot_versioned_path)
@@ -111,8 +116,27 @@ class KernelUpdater(object):
         self.command_runner.run_command(grub_mkconfig_command)
 
     @staticmethod
-    def get_version_from_kernel_folder(folder_name):
-        return sub('.*linux-', '', folder_name).replace("-gentoo", "").split(".")
+    def get_version_int_array_from_kernel_folder(folder_name):
+        string_array = sub('.*linux-', '', folder_name).replace("-gentoo", "").replace("-r", ".").split(".")
+        int_array = [int(num_string) for num_string in string_array]
+        if len(int_array) == 3:
+            int_array.append(-1)
+        return int_array
+
+    @staticmethod
+    def get_kernel_folder_suffix_from_version_int_array(version_int_array):
+        version_string = ".".join(str(version_int_array[index]) for index in [0, 1, 2]);
+        revision_suffix = "";
+        if version_int_array[3] != -1:
+            revision_suffix = "-r" + str(version_int_array[3])
+        return version_string + "-gentoo" + revision_suffix
+
+    @staticmethod
+    def get_version_string_from_version_int_array(version_int_array):
+        version_string = ".".join(str(version_int_array[index]) for index in [0, 1, 2]);
+        if version_int_array[3] != int(-1):
+            version_string += "-r" + str(version_int_array[3])
+        return version_string
 
     @staticmethod
     def remove_tree(dir_to_delete):
